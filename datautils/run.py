@@ -4,12 +4,13 @@ import multiprocessing
 import time
 from util.pairdata import pairdata
 
-ida_path = "./ida/idat64"
+ida_path = "/home/gabriel/idapro-7.5/idat64"
 work_dir = os.path.abspath('.')
 dataset_dir = './dataset/'
 strip_path = "./dataset_strip/"
-script_path = f"./process.py"
+script_path = "./process.py"
 SAVE_ROOT = "./extract"
+
 
 def getTarget(path, prefixfilter=None):
     target = []
@@ -23,6 +24,7 @@ def getTarget(path, prefixfilter=None):
                         target.append(os.path.join(root, file))
     return target
 
+
 if __name__ == '__main__':
     # prefixfilter = ['libcap-git-setcap']
     start = time.time()
@@ -31,7 +33,7 @@ if __name__ == '__main__':
     pool = multiprocessing.Pool(processes=8)
     for target in target_list:
         filename = target.split('/')[-1]
-        filename_strip = filename  + '.strip'
+        filename_strip = filename + '.strip'
         ida_input = os.path.join(strip_path, filename_strip)
         os.system(f"strip -s {target} -o {ida_input}")
         print(f"strip -s {target} -o {ida_input}")

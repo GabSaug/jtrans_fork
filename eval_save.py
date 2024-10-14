@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
-from data import help_tokenize, load_paired_data,FunctionDataset_CL
+from data import help_tokenize, load_paired_data, FunctionDataset_CL
 from transformers import AdamW
 import torch.nn.functional as F
 import argparse
@@ -16,6 +16,7 @@ import logging
 import sys
 import time
 import data
+from datautils.playdata import DatasetBase as DatasetBase
 WANDB = True
 
 def get_logger(name):
@@ -98,12 +99,14 @@ def finetune_eval(net, data_loader):
         print("FINAL MRR ",np.mean(np.array(avg)))
         fi.close()
         return np.mean(np.array(avg))
+
+
 class BinBertModel(BertModel):
     def __init__(self, config, add_pooling_layer=True):
         super().__init__(config)
         self.config = config
         self.embeddings.position_embeddings=self.embeddings.word_embeddings
-from datautils.playdata import DatasetBase as DatasetBase
+
 
 if __name__ == '__main__':
 
@@ -119,10 +122,12 @@ if __name__ == '__main__':
     now = datetime.now() # current date and time
     TIMESTAMP="%Y%m%d%H%M"
     tim = now.strftime(TIMESTAMP)
-    logger = get_logger(f"jTrans-{args.model_path}-eval-{args.dataset_path}_savename_{args.experiment_path}_{tim}")
+    #logger = get_logger(f"jTrans-{args.model_path}-eval-{args.dataset_path}_savename_{args.experiment_path}_{tim}")
+    logger = get_logger(f"log_eval_save.txt")
     logger.info(f"Loading Pretrained Model from {args.model_path} ...")
-    model = BinBertModel.from_pretrained(args.model_path)
 
+    # Load model
+    model = BinBertModel.from_pretrained(args.model_path)
     model.eval()
     device = torch.device("cuda")
     model.to(device)
@@ -130,24 +135,35 @@ if __name__ == '__main__':
     logger.info("Done ...")
     tokenizer = BertTokenizer.from_pretrained(args.tokenizer)
     logger.info("Tokenizer Done ...")
-   
+
     logger.info("Preparing Datasets ...")
-    ft_valid_dataset=FunctionDataset_CL(tokenizer,args.dataset_path,None,True,opt=['O0', 'O1', 'O2', 'O3', 'Os'], add_ebd=True, convert_jump_addr=True)
+    ft_valid_dataset = FunctionDataset_CL(
+            tokenizer,
+            args.dataset_path,None,True,
+            opt=['O0', 'O1', 'O2', 'O3', 'Os'],
+            add_ebd=True, convert_jump_addr=True)
+
     for i in tqdm(range(len(ft_valid_dataset.datas))):
         pairs=ft_valid_dataset.datas[i]
         for j in ['O0','O1','O2','O3','Os']:
             if ft_valid_dataset.ebds[i].get(j) is not None:
                 idx=ft_valid_dataset.ebds[i][j]
-                ret1=tokenizer([pairs[idx]], add_special_tokens=True,max_length=512,padding='max_length',truncation=True,return_tensors='pt') #tokenize them
+                ret1=tokenizer(
+                        [pairs[idx]],
+                        add_special_tokens=True,
+                        max_length=512,
+                        padding='max_length',
+                        truncation=True,
+                        return_tensors='pt') #tokenize them
                 seq1=ret1['input_ids']
                 mask1=ret1['attention_mask']
-                input_ids1, attention_mask1= seq1.cuda(),mask1.cuda()
+                input_ids1, attention_mask1= seq1.cuda(), mask1.cuda()
                 output=model(input_ids=input_ids1,attention_mask=attention_mask1)
                 anchor=output.pooler_output
                 ft_valid_dataset.ebds[i][j]=anchor.detach().cpu()
 
     logger.info("ebds start writing")
-    fi=open(args.experiment_path,'wb')
+    fi = open(args.experiment_path,'wb')
     pickle.dump(ft_valid_dataset.ebds,fi)
     fi.close()
 

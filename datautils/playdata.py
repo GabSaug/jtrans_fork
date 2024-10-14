@@ -8,6 +8,7 @@ import pickle
 import argparse
 from functools import reduce
 
+
 class DatasetBase(object):
     def __init__(self, path, prefixfilter=None, all_data=True, opt=None):
         self.path = path
@@ -33,7 +34,7 @@ class DatasetBase(object):
                     for filter in self.prefixfilter:
                         if dir.startswith(filter):
                             for file in os.listdir(os.path.join(root, dir)):
-                                yield dir, file, os.path.join(root, dir, file)          
+                                yield dir, file, os.path.join(root, dir, file)
 
     def load_pickle(self, file):
         with open(file, 'rb') as f:
@@ -44,7 +45,7 @@ class DatasetBase(object):
             if filename != 'saved_index.pkl':
                 pickle_data = self.load_pickle(pkl_path)
                 self.unpaired[proj].append(pickle_data)
-    
+
     def load_pair_data(self):
         if self.opt is None:
             for proj, filename, pkl_path in self.traverse_file():
@@ -60,7 +61,7 @@ class DatasetBase(object):
                     print(filename)
                     pickle_data = self.load_pickle(pkl_path)
                     self.paired[proj][opt] = pickle_data
-    
+
     def get_paired_data_iter(self):
         proj2pickle = defaultdict(defaultdict)
         for proj, filename, pkl_path in self.traverse_file():
@@ -78,14 +79,13 @@ class DatasetBase(object):
                 pkl = pickle.load(open(pkl_path, 'rb'))
                 function_list.append(list(pkl.keys()))
                 tmp_pickle_dict[opt] = pkl
-            function_set = reduce(lambda x,y : set(x) & set(y), function_list)
+            function_set = reduce(lambda x, y: set(x) & set(y), function_list)
             for func_name in function_set:
                 ret_func_data = defaultdict()
                 for opt, pkl in tmp_pickle_dict.items():
                     ret_func_data[opt] = pkl[func_name]
                 yield proj, func_name, ret_func_data
 
-                    
     def get_unpaird_data_iter(self):
         for proj, filename, pkl_path in self.traverse_file():
             if filename != 'saved_index.pkl':
@@ -107,8 +107,6 @@ class DatasetBase(object):
                 for pkl in pkl_list:
                     for func_name, func_data_list in pkl.items():
                         yield proj, func_name, func_data_list
-                         # for func_data in func_data_list:
-                         #       func_addr, asm_list, rawbytes_list, cfg, biai_featrue = func_data
         else:
             for proj, pkl_dict in self.paired.items():
                 if len(pkl_dict) < 2:
@@ -116,7 +114,7 @@ class DatasetBase(object):
                 function_list = []
                 for opt, pkl in pkl_dict.items():
                     function_list.append(list(pkl.keys()))
-                function_set = reduce(lambda x,y : set(x) & set(y), function_list)
+                function_set = reduce(lambda x, y: set(x) & set(y), function_list)
                 for func_name in function_set:
                     ret_func_data = defaultdict()
                     for opt, pkl in pkl_dict.items():
@@ -126,6 +124,7 @@ class DatasetBase(object):
     def traverse_cfg_node(self, cfg):
         for node in cfg.nodes():
             yield cfg.nodes[node]['asm'], cfg.nodes[node]['raw']
+
 
 class DataBaseCrossCompiler(DatasetBase):
     def __init__(self, path, prefixfilter=None, all_data=True, opt=None):
@@ -138,7 +137,7 @@ class DataBaseCrossCompiler(DatasetBase):
                     continue
                 opt = filename.split('-')[-2]
                 compiler = filename.split('-')[-3]
-                final_opt = compiler+opt
+                final_opt = compiler + opt
                 if opt in self.opt:
                     print(filename)
                     pickle_data = self.load_pickle(pkl_path)
@@ -147,12 +146,12 @@ class DataBaseCrossCompiler(DatasetBase):
             print("opt is None")
             exit(1)
 
-    def get_paired_data(self): 
-        # return proj, func_name, ret_func_data 
+    def get_paired_data(self):
+        # return proj, func_name, ret_func_data
         # ret_func_data = {
         #                   opt: {
-        #                           compiler : (func_addr, asm_list, rawbytes_list, cfg, biai_featrue) 
-        #                        } 
+        #                           compiler : (func_addr, asm_list, rawbytes_list, cfg, biai_featrue)
+        #                        }
         #                  }
         if self.opt is not None:
             for proj, pkl_dict in self.paired.items():
@@ -161,7 +160,7 @@ class DataBaseCrossCompiler(DatasetBase):
                 function_list = []
                 for opt, pkl in pkl_dict.items():
                     function_list.append(list(pkl.keys()))
-                function_set = reduce(lambda x,y : set(x) & set(y), function_list)
+                function_set = reduce(lambda x, y: set(x) & set(y), function_list)
                 for func_name in function_set:
                     ret_func_data = defaultdict()
                     for opt, pkl in pkl_dict.items():
@@ -170,6 +169,7 @@ class DataBaseCrossCompiler(DatasetBase):
         else:
             print("opt is None")
             exit(1)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -197,7 +197,7 @@ if __name__ == '__main__':
             func_addr, asm_list, rawbytes_list, cfg, biai_featrue = func_data[opt]
             print(func_name, hex(func_addr))
 
-    # demo for cross compiler dataset 
+    # demo for cross compiler dataset
     dataset = DataBaseCrossCompiler('../extractDataset/coreutils', ["coreutils-b2sum"], False, ['O0', 'Os'])
     dataset.load_pair_data()
     cnt = 0
@@ -207,7 +207,7 @@ if __name__ == '__main__':
         for opt in ['O0', 'Os']:
             for compiler in ['gcc', 'clang']:
                 print('opt: ', opt, 'compiler', compiler)
-                func_addr, asm_list, rawbytes_list, cfg, biai_featrue = func_data[compiler+opt]
+                func_addr, asm_list, rawbytes_list, cfg, biai_featrue = func_data[compiler + opt]
                 print(func_name, hex(func_addr))
         cnt += 1
         if cnt > 5:
