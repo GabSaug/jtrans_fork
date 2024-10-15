@@ -81,38 +81,59 @@ def load_unpair_data(datapath,filt=None,alldata=True,convert_jump=True,opt=None,
         if len(func_str) > 0:
             fp.write(func_str+"\n")
 
-def load_paired_data(datapath,filt=None,alldata=True,convert_jump=True,opt=None,add_ebd=False):
-   
-    dataset = DatasetBase(datapath,filt,alldata, opt=opt)
-    functions=[]
-    func_emb_data=[]
-    SUM=0
-    for i in dataset.get_paired_data_iter():  #proj, func_name, func_addr, asm_list, rawbytes_list, cfg, bai_featrue
+def load_paired_data(datapath,
+                     filt=None,
+                     alldata=True,
+                     convert_jump=True,
+                     opt=None,
+                     add_ebd=False):
+
+    dataset = DatasetBase(datapath, filt, alldata, opt=opt)
+    functions = []
+    func_emb_data = []
+    SUM = 0
+    for pair in dataset.get_paired_data_iter():
+        # proj, func_name, func_addr, asm_list, rawbytes_list, cfg, bai_feature
         functions.append([])
         if add_ebd:
-            func_emb_data.append({'proj':i[0],'funcname':i[1]})
+            func_emb_data.append({'proj':pair[0],'funcname':pair[1]})
         for o in opt:
-            if i[2].get(o):                   
-                f=i[2][o]
-                func_str=gen_funcstr(f,convert_jump)
-                if len(func_str)>0:
+            if pair[2].get(o):
+                f = pair[2][o]
+                func_str = gen_funcstr(f, convert_jump)
+                if len(func_str) > 0:
                     if add_ebd:
-                        func_emb_data[-1][o]=len(functions[-1])
+                        func_emb_data[-1][o] = len(functions[-1])
                     functions[-1].append(func_str)
-                    SUM+=1
+                    SUM += 1
+    print('TOTAL ', SUM)
+    return functions, func_emb_data
 
-    print('TOTAL ',SUM)
-    return functions,func_emb_data
+class FunctionDataset_CL(torch.utils.data.Dataset):
+    """ Binary version dataset """
 
-class FunctionDataset_CL(torch.utils.data.Dataset): #binary version dataset
-    def __init__(self,tokenizer,path='../BinaryCorp/extract',filt=None,alldata=True,convert_jump_addr=True,opt=None,add_ebd=True):  #random visit
-        functions,ebds=load_paired_data(datapath=path,filt=filt,alldata=alldata,convert_jump=convert_jump_addr,opt=opt,add_ebd=add_ebd)
-        self.datas=functions
-        self.ebds=ebds
-        self.tokenizer=tokenizer
-        self.opt=opt
-        self.convert_jump_addr=True
-    def __getitem__(self, idx):             #also return bad pair
+    def __init__(self,tokenizer,path='../BinaryCorp/extract',
+                 filt=None,
+                 alldata=True,
+                 convert_jump_addr=True,
+                 opt=None,
+                 add_ebd=True):
+        """ Random visit """
+        functions, ebds = load_paired_data(
+                datapath=path,
+                filt=filt,
+                alldata=alldata,
+                convert_jump=convert_jump_addr,
+                opt=opt,
+                add_ebd=add_ebd)
+        self.datas = functions
+        self.ebds = ebds
+        self.tokenizer = tokenizer
+        self.opt = opt
+        self.convert_jump_addr = True
+
+    def __getitem__(self, idx):
+        """ Also returns bad pair """
 
         pairs=self.datas[idx]
         if self.opt==None:
@@ -146,6 +167,7 @@ class FunctionDataset_CL(torch.utils.data.Dataset): #binary version dataset
         mask3=ret3['attention_mask']
 
         return token_seq1,token_seq2,token_seq3,mask1,mask2,mask3
+
     def __len__(self):
         return len(self.datas)
 

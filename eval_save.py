@@ -137,30 +137,34 @@ if __name__ == '__main__':
     logger.info("Tokenizer Done ...")
 
     logger.info("Preparing Datasets ...")
+    # NOTE: this is the function to modify
     ft_valid_dataset = FunctionDataset_CL(
             tokenizer,
             args.dataset_path,None,True,
             opt=['O0', 'O1', 'O2', 'O3', 'Os'],
             add_ebd=True, convert_jump_addr=True)
+    # NOTE: add a breakpoint here
 
     for i in tqdm(range(len(ft_valid_dataset.datas))):
-        pairs=ft_valid_dataset.datas[i]
+        pairs = ft_valid_dataset.datas[i]
+        # NOTE: pairs data seem to come from here
         for j in ['O0','O1','O2','O3','Os']:
+            # NOTE: maybe add "-2" or "-obf"
             if ft_valid_dataset.ebds[i].get(j) is not None:
-                idx=ft_valid_dataset.ebds[i][j]
-                ret1=tokenizer(
+                idx = ft_valid_dataset.ebds[i][j]
+                ret1 = tokenizer(
                         [pairs[idx]],
                         add_special_tokens=True,
                         max_length=512,
                         padding='max_length',
                         truncation=True,
                         return_tensors='pt') #tokenize them
-                seq1=ret1['input_ids']
-                mask1=ret1['attention_mask']
-                input_ids1, attention_mask1= seq1.cuda(), mask1.cuda()
-                output=model(input_ids=input_ids1,attention_mask=attention_mask1)
-                anchor=output.pooler_output
-                ft_valid_dataset.ebds[i][j]=anchor.detach().cpu()
+                seq1 = ret1['input_ids']
+                mask1 = ret1['attention_mask']
+                input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
+                output = model(input_ids=input_ids1, attention_mask=attention_mask1)
+                anchor = output.pooler_output
+                ft_valid_dataset.ebds[i][j] = anchor.detach().cpu()
 
     logger.info("ebds start writing")
     fi = open(args.experiment_path,'wb')

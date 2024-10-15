@@ -10,6 +10,7 @@ from functools import reduce
 
 
 class DatasetBase(object):
+
     def __init__(self, path, prefixfilter=None, all_data=True, opt=None):
         self.path = path
         self.prefixfilter = prefixfilter
