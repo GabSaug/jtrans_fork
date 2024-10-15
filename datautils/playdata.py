@@ -68,7 +68,7 @@ class DatasetBase(object):
         for proj, filename, pkl_path in self.traverse_file():
             if filename == 'saved_index.pkl':
                 continue
-            opt = filename.split('-')[-2]
+            opt = filename.split('-')[-2] # NOTE: here it is -> Op
             proj2pickle[proj][opt] = pkl_path
 
         for proj, pickle_path_dict in proj2pickle.items():
