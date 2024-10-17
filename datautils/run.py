@@ -3,8 +3,10 @@ import subprocess
 import multiprocessing
 import time
 from util.pairdata import pairdata
+from os.path import basename
+from pathlib import Path
 
-ida_path = "/home/gsauger/idapro-7.5/idat64"
+ida_path = "{}/idapro-7.5/idat64".format(Path.home())
 work_dir = os.path.abspath('.')
 dataset_dir = './dataset/'
 strip_path = "./dataset_strip/"
@@ -30,18 +32,19 @@ if __name__ == '__main__':
     start = time.time()
     target_list = getTarget(dataset_dir)
 
-    pool = multiprocessing.Pool(processes=8)
+    pool = multiprocessing.Pool(processes=30)
     for target in target_list:
-        filename = target.split('/')[-1]
-        filename_strip = filename + '.strip'
-        ida_input = os.path.join(strip_path, filename_strip)
-        os.system(f"strip -s {target} -o {ida_input}")
-        print(f"strip -s {target} -o {ida_input}")
+        filename = basename(target)
+        #filename_strip = filename + '.strip'
+        #ida_input = os.path.join(strip_path, filename_strip)
+        ida_input = target
+        #os.system(f"strip -s {target} -o {ida_input}")
+        #print(f"strip -s {target} -o {ida_input}")
 
-        cmd_str = f'{ida_path} -Llog/{filename}.log -c -A -S{script_path} -oidb/{filename}.idb {ida_input}'
-        print(cmd_str)
         cmd = [ida_path, f'-Llog/{filename}.log', '-c', '-A', f'-S{script_path}', f'-oidb/{filename}.idb', f'{ida_input}']
+        print(cmd)
         pool.apply_async(subprocess.call, args=(cmd,))
+
     pool.close()
     pool.join()
     print('[*] Features Extracting Done')

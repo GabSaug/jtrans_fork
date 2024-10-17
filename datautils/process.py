@@ -4,6 +4,7 @@ import idaapi
 import pickle
 import binaryai
 import networkx as nx
+from os.path import basename
 from util.base import Binarybase
 
 SAVEROOT = "./extract"  # dir of pickle files saved by IDA
@@ -92,8 +93,7 @@ if __name__ == "__main__":
     assert os.path.exists(DATAROOT), "DATAROOT does not exist"
     assert os.path.exists(SAVEROOT), "SAVEROOT does not exist"
 
-    binary_abs_path = idc.get_input_file_path()
-    filename = binary_abs_path.split('/')[-1][:-6]
+    filename = basename(idc.get_input_file_path())
     unstrip_path = os.path.join(DATAROOT, filename)
     idc.auto_wait()
     binary_data = BinaryData(unstrip_path)

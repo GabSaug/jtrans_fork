@@ -119,11 +119,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     from datetime import datetime
-    now = datetime.now() # current date and time
-    TIMESTAMP="%Y%m%d%H%M"
+    now = datetime.now()  # current date and time
+    TIMESTAMP = "%Y%m%d%H%M"
     tim = now.strftime(TIMESTAMP)
     #logger = get_logger(f"jTrans-{args.model_path}-eval-{args.dataset_path}_savename_{args.experiment_path}_{tim}")
-    logger = get_logger(f"log_eval_save.txt")
+    logger = get_logger("log_eval_save.txt")
     logger.info(f"Loading Pretrained Model from {args.model_path} ...")
 
     # Load model
@@ -139,24 +139,24 @@ if __name__ == '__main__':
     logger.info("Preparing Datasets ...")
     # NOTE: this is the function to modify
     ft_valid_dataset = FunctionDataset_CL(
-            tokenizer,
-            args.dataset_path,None,True,
-            opt=['O0', 'O1', 'O2', 'O3', 'Os', 'Op'],
-            add_ebd=True, convert_jump_addr=True)
+        tokenizer,
+        args.dataset_path, None, True,
+        opt=['O0', 'O1', 'O2', 'O3', 'Os', 'Op', 'Ob'],
+        add_ebd=True, convert_jump_addr=True)
     # NOTE: add a breakpoint here
 
     for i in tqdm(range(len(ft_valid_dataset.datas))):
-        for opt in ['O0','O1','O2','O3','Os', 'Op']:
+        for opt in ['O0', 'O1', 'O2', 'O3', 'Os', 'Op', 'Ob']:
             #  Added "-Op" for perturbed binaries
             if ft_valid_dataset.ebds[i].get(opt) is not None:
                 idx = ft_valid_dataset.ebds[i][opt]
                 ret1 = tokenizer(
-                        [ft_valid_dataset.datas[i][idx]],
-                        add_special_tokens=True,
-                        max_length=512,
-                        padding='max_length',
-                        truncation=True,
-                        return_tensors='pt') #tokenize them
+                    [ft_valid_dataset.datas[i][idx]],
+                    add_special_tokens=True,
+                    max_length=512,
+                    padding='max_length',
+                    truncation=True,
+                    return_tensors='pt')  #tokenize them
                 seq1 = ret1['input_ids']
                 mask1 = ret1['attention_mask']
                 input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
@@ -165,7 +165,6 @@ if __name__ == '__main__':
                 ft_valid_dataset.ebds[i][opt] = anchor.detach().cpu()
 
     logger.info("ebds start writing")
-    fi = open(args.experiment_path,'wb')
-    pickle.dump(ft_valid_dataset.ebds,fi)
-    fi.close()
+    with open(args.experiment_path, 'wb') as fi:
+        pickle.dump(ft_valid_dataset.ebds, fi)
 
