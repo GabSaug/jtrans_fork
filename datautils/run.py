@@ -4,7 +4,7 @@ import multiprocessing
 import time
 from util.pairdata import pairdata
 
-ida_path = "/home/gabriel/idapro-7.5/idat64"
+ida_path = "/home/gsauger/idapro-7.5/idat64"
 work_dir = os.path.abspath('.')
 dataset_dir = './dataset/'
 strip_path = "./dataset_strip/"

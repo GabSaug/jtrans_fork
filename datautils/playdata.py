@@ -72,8 +72,8 @@ class DatasetBase(object):
             proj2pickle[proj][opt] = pkl_path
 
         for proj, pickle_path_dict in proj2pickle.items():
-            if len(pickle_path_dict) < 2:
-                continue
+            #if len(pickle_path_dict) < 2:
+                #continue
             function_list = []
             tmp_pickle_dict = {}
             for opt, pkl_path in pickle_path_dict.items():
