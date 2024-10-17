@@ -1,0 +1,7 @@
+Gather the preprocessed (extract) pickle files in the input folder.
+(ex: Dataset-Muaz/extract/)
+
+Be sure to have "Op" in the perturbed samples names and "Ob" in the ground
+truth bin names. Be sure to have each bin compiled in ONE optimizaiton level.
+
+run "python3 eval_save.py" with the correct options
