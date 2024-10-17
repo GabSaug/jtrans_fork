@@ -38,8 +38,8 @@ def preprocessJtransOutput(embeddings_list):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="jTrans-Compare_Binaries")
-    parser.add_argument("csv_path", type=str, help="Path to the CSV file input ")
-    parser.add_argument("in_pickle_path", type=str, help="Path to the input pickle file")
+    parser.add_argument("csv_path", type=str, help="Path to the function pairs CSV file ")
+    parser.add_argument("in_pickle_path", type=str, help="Path to the embeddings pickle file")
     parser.add_argument("--output", type=str, default="./output.csv", help="Path to output csv file")
     parser.add_argument("--log", type=str, default="./stat_compare_log.txt", help="Path to the log file")
     args = parser.parse_args()
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     pickle_in.close()
 
     csv_out = open(args.output, "w")
-    csv_out.write("idb_path_1,func_name_1,idb_path_2,func_name_2,sim")
+    csv_out.write("idb_path_1,func_name_1,idb_path_2,func_name_2,sim\n")
 
     LOG = open(args.log, "w")
 

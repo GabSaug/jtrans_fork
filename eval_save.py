@@ -1,23 +1,26 @@
-from transformers import BertTokenizer, BertForMaskedLM, BertModel
-from tokenizer import *
+from transformers import BertTokenizer, BertModel
+#from transformers import BertForMaskedLM
+#from tokenizer import *
 import pickle
 from torch.utils.data import DataLoader
-import os
+#import os
 import torch
-import torch.nn as nn
+#import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
-from data import help_tokenize, load_paired_data, FunctionDataset_CL
-from transformers import AdamW
+#from data import help_tokenize, load_paired_data, FunctionDataset_CL
+from data import FunctionDataset_CL
+#from transformers import AdamW
 import torch.nn.functional as F
 import argparse
 import wandb
 import logging
 import sys
-import time
-import data
-from datautils.playdata import DatasetBase as DatasetBase
+#import time
+#import data
+#from datautils.playdata import DatasetBase as DatasetBase
 WANDB = True
+
 
 def get_logger(name):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename=name)
@@ -27,6 +30,7 @@ def get_logger(name):
     s_handle.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(filename)s[:%(lineno)d] - %(message)s"))
     logger.addHandler(s_handle)
     return logger
+
 
 def eval(model, args, valid_set, logger):
 
@@ -47,6 +51,7 @@ def eval(model, args, valid_set, logger):
         wandb.log({
                     'mrr': mrr
                 })
+
 
 def finetune_eval(net, data_loader):
     net.eval()
@@ -105,7 +110,7 @@ class BinBertModel(BertModel):
     def __init__(self, config, add_pooling_layer=True):
         super().__init__(config)
         self.config = config
-        self.embeddings.position_embeddings=self.embeddings.word_embeddings
+        self.embeddings.position_embeddings = self.embeddings.word_embeddings
 
 
 if __name__ == '__main__':
@@ -156,7 +161,7 @@ if __name__ == '__main__':
                     max_length=512,
                     padding='max_length',
                     truncation=True,
-                    return_tensors='pt')  #tokenize them
+                    return_tensors='pt')  # tokenize them
                 seq1 = ret1['input_ids']
                 mask1 = ret1['attention_mask']
                 input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
@@ -167,4 +172,3 @@ if __name__ == '__main__':
     logger.info("ebds start writing")
     with open(args.experiment_path, 'wb') as fi:
         pickle.dump(ft_valid_dataset.ebds, fi)
-
