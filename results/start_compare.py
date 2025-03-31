@@ -56,6 +56,7 @@ if __name__ == '__main__':
     csv_out.write("idb_path_1,func_name_1,idb_path_2,func_name_2,sim\n")
 
     LOG = open(args.log, "w")
+    log("Launching stat_compare.py", LOG)
 
     embeddings = preprocessJtransOutput(embeddings_list)
     breakpoint()
@@ -69,21 +70,23 @@ if __name__ == '__main__':
         embedding_f_2 = None
 
         if bin_name_1 not in embeddings.keys():
-            log("[*] Error, binary {} not in embeddings".format(bin_name_1), LOG)
+            log("[*] Error, binary {} not in embeddings\n".format(bin_name_1), LOG)
             continue
 
         if bin_name_2 not in embeddings.keys():
-            log("[*] Error, binary {} not in embeddings".format(bin_name_2), LOG)
+            log("[*] Error, binary {} not in embeddings\n".format(bin_name_2), LOG)
             continue
 
         if func_name_1 not in embeddings[bin_name_1].keys():
-            log("[*] Error, func {} not in {} embeddings".format(
+            log("[*] Error, func {} not in {} embeddings\n".format(
                 func_name_1, bin_name_1), LOG)
+            breakpoint()
             continue
 
         if func_name_2 not in embeddings[bin_name_2].keys():
-            log("[*] Error, func {} not in {} embeddings".format(
+            log("[*] Error, func {} not in {} embeddings\n".format(
                 func_name_2, bin_name_2), LOG)
+            breakpoint()
             continue
 
         emb1 = embeddings[bin_name_1][func_name_1]
