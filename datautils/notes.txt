@@ -1,7 +1,10 @@
 Usage:
 launch the conda env: conda activate jtrans (following the git's Readme)
-Fill the dataset/ folder with the binaries to extract function embeddings from
-run .clean.sh script
+
+Create the dataset, idb, log folders
+
+Fill the dataset/ folder with the binaries to extract function embeddings from run .clean.sh script
+
 run LD_LIBRARY_PATH=/home/gab/anaconda3/envs/jtrans/lib/  python3 run.py
 
 Be careful avout the naming of the binaries in the dataset folder:
