@@ -13,6 +13,8 @@ strip_path = "./dataset_strip/"
 script_path = "./process.py"
 SAVE_ROOT = "./extract"
 
+for folder in [dataset_dir, SAVE_ROOT, "log", "idb"]:
+    os.makedirs(folder, exist_ok=True)
 
 def getTarget(path, prefixfilter=None):
     target = []
