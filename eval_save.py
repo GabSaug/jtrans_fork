@@ -1,26 +1,27 @@
-from transformers import BertTokenizer, BertModel
-#from transformers import BertForMaskedLM
-#from tokenizer import *
-import pickle
-from torch.utils.data import DataLoader
-#import os
-import torch
-#import torch.nn as nn
-import numpy as np
-from tqdm import tqdm
-#from data import help_tokenize, load_paired_data, FunctionDataset_CL
-from data import FunctionDataset_CL
-#from transformers import AdamW
-import torch.nn.functional as F
-import argparse
-import wandb
-import logging
 import sys
-#import time
-#import data
-#from datautils.playdata import DatasetBase as DatasetBase
-WANDB = True
+import pickle
+import logging
+import argparse
+from datetime import datetime
 
+import torch
+import torch.nn.functional as F
+import numpy as np
+
+from tqdm import tqdm
+from torch.utils.data import DataLoader
+from transformers import (
+    BertTokenizer,
+    BertModel,
+)
+
+import wandb
+from tokenizer import *
+from data import FunctionDataset_CL
+
+from datautils.playdata import DatasetBase as DatasetBase
+
+WANDB = True
 
 def get_logger(name):
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', filename=name)
@@ -31,144 +32,128 @@ def get_logger(name):
     logger.addHandler(s_handle)
     return logger
 
-
-def eval(model, args, valid_set, logger):
-
-    if WANDB:
-        wandb.init(project=f'jTrans-finetune')
-        wandb.config.update(args)
-    logger.info("Initializing Model...")
-    device = torch.device("cuda")
-    model.to(device)
-    logger.info("Finished Initialization...")
-    valid_dataloader = DataLoader(valid_set, batch_size=args.eval_batch_size, num_workers=24, shuffle=True)
-    global_steps = 0
-    etc=0
-    logger.info(f"Doing Evaluation ...")
-    mrr = finetune_eval(model, valid_dataloader)
-    logger.info(f"Evaluate: mrr={mrr}")
-    if WANDB:
-        wandb.log({
-                    'mrr': mrr
-                })
-
-
 def finetune_eval(net, data_loader):
     net.eval()
-    print(net)
+    avg, gt, cons = [], [], []
     with torch.no_grad():
-        avg=[]
-        gt=[]
-        cons=[]
-        eval_iterator = tqdm(data_loader)
-        for i, (seq1,seq2,seq3,mask1,mask2,mask3) in enumerate(eval_iterator):
-                input_ids1, attention_mask1= seq1.cuda(),mask1.cuda()
-                input_ids2, attention_mask2= seq2.cuda(),mask2.cuda()
-                print(input_ids1.shape)
-                print(attention_mask1.shape)
-                anchor,pos=0,0
+        for seq1, seq2, _, mask1, mask2, _ in tqdm(data_loader):
+            input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
+            input_ids2, attention_mask2 = seq2.cuda(), mask2.cuda()
 
-                output=net(input_ids=input_ids1,attention_mask=attention_mask1)
-                #anchor=output.last_hidden_state[:,0:1,:]
-                anchor=output.pooler_output
-                output=net(input_ids=input_ids2,attention_mask=attention_mask2)
-                #pos=output.last_hidden_state[:,0:1,:]
-                pos=output.pooler_output
-                ans=0
-                for k in range(len(anchor)):    # check every vector of (vA,vB)
-                    vA=anchor[k:k+1].cpu()
-                    sim=[]
-                    for j in range(len(pos)):
-                        vB=pos[j:j+1].cpu()
-                        #vB=vB[0]
-                        AB_sim=F.cosine_similarity(vA, vB).item()
-                        sim.append(AB_sim)
-                        if j!=k:
-                            cons.append(AB_sim)
-                    sim=np.array(sim)
-                    y=np.argsort(-sim)
-                    posi=0
-                    for j in range(len(pos)):
-                        if y[j]==k:
-                            posi=j+1
+            anchor = net(input_ids=input_ids1, attention_mask=attention_mask1).pooler_output
+            pos = net(input_ids=input_ids2, attention_mask=attention_mask2).pooler_output
 
-                    gt.append(sim[k])
+            ans = 0
+            for k in range(len(anchor)):
+                vA = anchor[k:k+1].cpu()
+                sim = []
 
-                    ans+=1/posi
+                for j in range(len(pos)):
+                    vB = pos[j:j+1].cpu()
+                    sim_score = F.cosine_similarity(vA, vB).item()
+                    sim.append(sim_score)
+                    if j != k:
+                        cons.append(sim_score)
 
-                ans=ans/len(anchor)
-                avg.append(ans)
-                print("now mrr ",np.mean(np.array(avg)))
-        fi=open("logft.txt","a")
-        print("MRR ",np.mean(np.array(avg)),file=fi)
-        print("FINAL MRR ",np.mean(np.array(avg)))
-        fi.close()
-        return np.mean(np.array(avg))
+                sim = np.array(sim)
+                y = np.argsort(-sim)
+                posi = np.where(y == k)[0][0] + 1
+                gt.append(sim[k])
+                ans += 1 / posi
 
+            avg.append(ans / len(anchor))
+            print("Current MRR:", np.mean(avg))
 
-class BinBertModel(BertModel):
-    def __init__(self, config, add_pooling_layer=True):
-        super().__init__(config)
-        self.config = config
-        self.embeddings.position_embeddings = self.embeddings.word_embeddings
+        final_mrr = np.mean(avg)
+        with open("logft.txt", "a") as fi:
+            print("MRR", final_mrr, file=fi)
+        print("FINAL MRR:", final_mrr)
+        return final_mrr
 
+def eval(model, args, valid_set, logger):
+    if WANDB:
+        wandb.init(project='jTrans-finetune')
+        wandb.config.update(args)
 
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description="jTrans-EvalSave")
-    parser.add_argument("--model_path", type=str, default='./models/jTrans-finetune', help="Path to the model")
-    parser.add_argument("--dataset_path", type=str, default='./BinaryCorp/small_test', help="Path to the dataset")
-    parser.add_argument("--experiment_path", type=str, default='./experiments/BinaryCorp-3M/jTrans.pkl', help="Path to the experiment")
-    parser.add_argument("--tokenizer", type=str, default='./jtrans_tokenizer/')
-
-    args = parser.parse_args()
-
-    from datetime import datetime
-    now = datetime.now()  # current date and time
-    TIMESTAMP = "%Y%m%d%H%M"
-    tim = now.strftime(TIMESTAMP)
-    #logger = get_logger(f"jTrans-{args.model_path}-eval-{args.dataset_path}_savename_{args.experiment_path}_{tim}")
-    logger = get_logger("log_eval_save.txt")
-    logger.info(f"Loading Pretrained Model from {args.model_path} ...")
-
-    # Load model
-    model = BinBertModel.from_pretrained(args.model_path)
-    model.eval()
     device = torch.device("cuda")
     model.to(device)
 
-    logger.info("Done ...")
+    logger.info("Starting Evaluation...")
+    valid_dataloader = DataLoader(valid_set, batch_size=args.eval_batch_size, num_workers=24, shuffle=True)
+    mrr = finetune_eval(model, valid_dataloader)
+    logger.info(f"Evaluation MRR: {mrr}")
+
+    if WANDB:
+        wandb.log({'mrr': mrr})
+
+class BinBertModel(BertModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.embeddings.position_embeddings = self.embeddings.word_embeddings
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="jTrans Evaluation + Save EBDs")
+    parser.add_argument("--model_path", type=str, default='./models/jTrans-finetune', help="Path to the model")
+    parser.add_argument("--dataset_path", type=str, default='./datautils/extract/', help="Path to the dataset")
+    parser.add_argument("--output", type=str, default='./embeddings/Dataset-Muaz.pkl', help="Output path for experiment embeddings")
+    parser.add_argument("--tokenizer", type=str, default='./jtrans_tokenizer/')
+    parser.add_argument("--paired", action="store_true")
+    args = parser.parse_args()
+
+    now = datetime.now()
+    log_name = f"jTrans-{args.model_path.replace('/','@')}-eval-{args.dataset_path.replace('/','@')}_savename_{args.output.replace('/','@')}.log"
+    logger = get_logger(log_name)
+
+    logger.info(f"Loading model from {args.model_path}")
+    model = BinBertModel.from_pretrained(args.model_path)
+    model.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
     tokenizer = BertTokenizer.from_pretrained(args.tokenizer)
-    logger.info("Tokenizer Done ...")
+    logger.info("Tokenizer loaded")
 
-    logger.info("Preparing Datasets ...")
-    # NOTE: this is the function to modify
+    logger.info("Preparing dataset...")
     ft_valid_dataset = FunctionDataset_CL(
-        tokenizer,
-        args.dataset_path, None, True,
-        opt=['O0', 'O1', 'O2', 'O3', 'Os', 'Op', 'Ob'],
-        add_ebd=True, convert_jump_addr=True)
-    # NOTE: add a breakpoint here
+        tokenizer, args.dataset_path, None, True,
+        opt=['O0', 'O1', 'O2', 'O3', 'Os'],
+        add_ebd=True,
+        convert_jump_addr=True,
+        paired=args.paired
+    )
 
-    for i in tqdm(range(len(ft_valid_dataset.datas))):
-        for opt in ['O0', 'O1', 'O2', 'O3', 'Os', 'Op', 'Ob']:
-            #  Added "-Op" for perturbed binaries
-            if ft_valid_dataset.ebds[i].get(opt) is not None:
-                idx = ft_valid_dataset.ebds[i][opt]
-                ret1 = tokenizer(
-                    [ft_valid_dataset.datas[i][idx]],
-                    add_special_tokens=True,
-                    max_length=512,
-                    padding='max_length',
-                    truncation=True,
-                    return_tensors='pt')  # tokenize them
-                seq1 = ret1['input_ids']
-                mask1 = ret1['attention_mask']
-                input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
-                output = model(input_ids=input_ids1, attention_mask=attention_mask1)
-                anchor = output.pooler_output
-                ft_valid_dataset.ebds[i][opt] = anchor.detach().cpu()
+    #logger.info("Generating embeddings for dataset...")
+    #for i, func_data_str in tqdm(enumerate(ft_valid_dataset.datas)):
+    #    ret = tokenizer([func_data_str],
+    #                    add_special_tokens=True,
+    #                    max_length=512,
+    #                    padding='max_length',
+    #                    truncation=True,
+    #                    return_tensors='pt')
+    #    input_ids, attention_mask = ret['input_ids'], ret['attention_mask']
+    #    output = model(input_ids=input_ids, attention_mask=attention_mask)
+    #    ft_valid_dataset.ebds[i] = output.pooler_output.detach().cpu()
 
-    logger.info("ebds start writing")
-    with open(args.experiment_path, 'wb') as fi:
-        pickle.dump(ft_valid_dataset.ebds, fi)
+    logger.info("Generating embeddings for dataset...")
+    if args.paired:
+        for i in tqdm(range(len(ft_valid_dataset.datas))):
+            pairs = ft_valid_dataset.datas[i]
+            for opt_level in ['O0', 'O1', 'O2', 'O3', 'Os']:
+                idx = ft_valid_dataset.ebds[i].get(opt_level)
+                if idx is not None:
+                    ret = tokenizer([pairs[idx]], add_special_tokens=True, max_length=512, padding='max_length', truncation=True, return_tensors='pt')
+                    input_ids, attention_mask = ret['input_ids'].cuda(), ret['attention_mask'].cuda()
+                    output = model(input_ids=input_ids, attention_mask=attention_mask)
+                    ft_valid_dataset.ebds[i][opt_level] = output.pooler_output.detach().cpu()
+    else:
+        for i, func_data in tqdm(enumerate(ft_valid_dataset.datas), total=len(ft_valid_dataset.datas)):
+            ret = tokenizer([func_data], add_special_tokens=True, max_length=512, padding='max_length', truncation=True, return_tensors='pt')
+            input_ids, attention_mask = ret['input_ids'], ret['attention_mask']
+            output = model(input_ids=input_ids, attention_mask=attention_mask)
+            ft_valid_dataset.ebds[i]["ebd"] = output.pooler_output.detach().cpu()
+
+
+    logger.info("Saving embeddings to file...")
+    with open(args.output, 'wb') as f:
+        pickle.dump(ft_valid_dataset.ebds, f)
+

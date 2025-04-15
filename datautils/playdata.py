@@ -63,29 +63,54 @@ class DatasetBase(object):
                     pickle_data = self.load_pickle(pkl_path)
                     self.paired[proj][opt] = pickle_data
 
-    def get_paired_data_iter(self):
-        proj2pickle = defaultdict(defaultdict)
+    def get_all_functions_by_proj(self):
+        """
+        Return a dict mapping (project, function_name) -> function_data.
+        This loads ALL available functions across all opt levels.
+        """
+        func_index = {}
+
         for proj, filename, pkl_path in self.traverse_file():
             if filename == 'saved_index.pkl':
                 continue
-            opt = filename.split('-')[-2] # NOTE: here it is -> Op
-            proj2pickle[proj][opt] = pkl_path
 
-        for proj, pickle_path_dict in proj2pickle.items():
-            #if len(pickle_path_dict) < 2:
-                #continue
-            function_list = []
-            tmp_pickle_dict = {}
-            for opt, pkl_path in pickle_path_dict.items():
-                pkl = pickle.load(open(pkl_path, 'rb'))
-                function_list.append(list(pkl.keys()))
-                tmp_pickle_dict[opt] = pkl
-            function_set = reduce(lambda x, y: set(x) & set(y), function_list)
-            for func_name in function_set:
-                ret_func_data = defaultdict()
-                for opt, pkl in tmp_pickle_dict.items():
-                    ret_func_data[opt] = pkl[func_name]
-                yield proj, func_name, ret_func_data
+            with open(pkl_path, 'rb') as f:
+                pkl_data = pickle.load(f)
+                for func_name, func_data in pkl_data.items():
+                    key = (proj, func_name)
+                    if key not in func_index:
+                        func_index[key] = func_data  # First come, first serve
+
+        return func_index
+
+    def get_paired_data_iter(self):
+        """
+        Generator yielding (project, function_name, {opt_level: function_data}) for functions
+        that exist across multiple optimization levels.
+        """
+        proj2opt_pkl = defaultdict(dict)
+
+        for proj, filename, pkl_path in self.traverse_file():
+            if filename == 'saved_index.pkl':
+                continue
+
+            opt_level = filename.split('-')[-2]
+            proj2opt_pkl[proj][opt_level] = pkl_path
+
+        for proj, opt_pkl_map in proj2opt_pkl.items():
+            func_lists = []
+            loaded_pkls = {}
+
+            for opt, pkl_path in opt_pkl_map.items():
+                with open(pkl_path, 'rb') as f:
+                    pkl_data = pickle.load(f)
+                func_lists.append(set(pkl_data.keys()))
+                loaded_pkls[opt] = pkl_data
+
+            shared_funcs = set.intersection(*func_lists)
+            for func_name in shared_funcs:
+                opt_func_data = {opt: pkl[func_name] for opt, pkl in loaded_pkls.items()}
+                yield proj, func_name, opt_func_data
 
     def get_unpaird_data_iter(self):
         for proj, filename, pkl_path in self.traverse_file():

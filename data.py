@@ -1,4 +1,5 @@
 import sys
+import csv
 from datautils.playdata import DatasetBase as DatasetBase
 import networkx
 import os
@@ -81,32 +82,63 @@ def load_unpair_data(datapath,filt=None,alldata=True,convert_jump=True,opt=None,
         if len(func_str) > 0:
             fp.write(func_str+"\n")
 
-def load_paired_data(datapath,
-                     filt=None,
-                     alldata=True,
-                     convert_jump=True,
-                     opt=None,
-                     add_ebd=False):
+def load_simple_data(datapath, filt=None, alldata=True, convert_jump=True):
 
+    dataset = DatasetBase(datapath, filt, alldata, opt=None)
+    functions = []
+    embds_data = []
+    total_count = 0
+
+    for func_data in dataset.get_unpaird_data_iter():
+        proj, func_name = func_data[0:2]  # if needed
+        func_str = gen_funcstr(func_data[2:], convert_jump)
+
+        if not func_str:
+            continue
+
+        embds_data.append({'funcname' : func_name, 'proj' : proj})
+        functions.append(func_str)
+
+        total_count += 1
+
+    print('TOTAL (default)', total_count)
+    return functions, embds_data
+
+def load_paired_data( datapath, filt=None, alldata=True, convert_jump=True,
+                     opt=None, add_ebd=False, csv_file=None):
     dataset = DatasetBase(datapath, filt, alldata, opt=opt)
     functions = []
     func_emb_data = []
-    SUM = 0
-    for pair in dataset.get_paired_data_iter():
-        # proj, func_name, func_addr, asm_list, rawbytes_list, cfg, bai_feature
-        functions.append([])
+    total_count = 0
+
+    # Default behavior
+    for proj, func_name, opt_func_data in dataset.get_paired_data_iter():
+        func_group = []
         if add_ebd:
-            func_emb_data.append({'proj':pair[0],'funcname':pair[1]})
-        for o in opt:
-            if pair[2].get(o):
-                f = pair[2][o]
-                func_str = gen_funcstr(f, convert_jump)
-                if len(func_str) > 0:
-                    if add_ebd:
-                        func_emb_data[-1][o] = len(functions[-1])
-                    functions[-1].append(func_str)
-                    SUM += 1
-    print('TOTAL ', SUM)
+            emb_entry = {'proj': proj, 'funcname': func_name}
+
+        if opt:
+            for level in opt:
+                func_data = opt_func_data.get(level)
+                if not func_data:
+                    continue
+
+                func_str = gen_funcstr(func_data, convert_jump)
+                if not func_str:
+                    continue
+
+                if add_ebd:
+                    emb_entry[level] = len(func_group)
+
+                func_group.append(func_str)
+                total_count += 1
+
+            if func_group:
+                functions.append(func_group)
+                if add_ebd:
+                    func_emb_data.append(emb_entry)
+
+    print('TOTAL (default)', total_count)
     return functions, func_emb_data
 
 class FunctionDataset_CL(torch.utils.data.Dataset):
@@ -117,15 +149,24 @@ class FunctionDataset_CL(torch.utils.data.Dataset):
                  alldata=True,
                  convert_jump_addr=True,
                  opt=None,
-                 add_ebd=True):
+                 add_ebd=True,
+                 paired=True):
         """ Random visit """
-        functions, ebds = load_paired_data(
-                datapath=path,
-                filt=filt,
-                alldata=alldata,
-                convert_jump=convert_jump_addr,
-                opt=opt,
-                add_ebd=add_ebd)
+        if paired:
+            functions, ebds = load_paired_data(
+                    datapath=path,
+                    filt=filt,
+                    alldata=alldata,
+                    convert_jump=convert_jump_addr,
+                    opt=opt,
+                    add_ebd=add_ebd
+                    )
+        else:
+            functions, ebds = load_simple_data(datapath=path,
+                                         filt=None,
+                                         alldata=True,
+                                         convert_jump=True)
+
         self.datas = functions
         self.ebds = ebds
         self.tokenizer = tokenizer
