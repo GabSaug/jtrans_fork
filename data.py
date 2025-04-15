@@ -82,15 +82,31 @@ def load_unpair_data(datapath,filt=None,alldata=True,convert_jump=True,opt=None,
         if len(func_str) > 0:
             fp.write(func_str+"\n")
 
-def load_simple_data(datapath, filt=None, alldata=True, convert_jump=True):
+def load_simple_data(datapath, filt=None, alldata=True, convert_jump=True, fun_file=None):
 
     dataset = DatasetBase(datapath, filt, alldata, opt=None)
     functions = []
     embds_data = []
     total_count = 0
 
+    function_name_set = set()
+    if fun_file:
+        with open(fun_file, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            for row in reader:
+                if len(row) != 4:
+                    continue  # Skip malformed lines
+                _, func1, _, func2 = row
+                function_name_set.add(func1.strip())
+                function_name_set.add(func2.strip())
+        print(f"Loaded {len(function_name_set)} unique function entries from CSV.")
+
+
     for func_data in dataset.get_unpaird_data_iter():
         proj, func_name = func_data[0:2]  # if needed
+        if function_name_set:
+            if func_name not in function_name_set:
+                continue
         func_str = gen_funcstr(func_data[2:], convert_jump)
 
         if not func_str:
@@ -150,7 +166,8 @@ class FunctionDataset_CL(torch.utils.data.Dataset):
                  convert_jump_addr=True,
                  opt=None,
                  add_ebd=True,
-                 paired=True):
+                 paired=True,
+                 fun_file=None):
         """ Random visit """
         if paired:
             functions, ebds = load_paired_data(
@@ -165,7 +182,8 @@ class FunctionDataset_CL(torch.utils.data.Dataset):
             functions, ebds = load_simple_data(datapath=path,
                                          filt=None,
                                          alldata=True,
-                                         convert_jump=True)
+                                         convert_jump=True,
+                                               fun_file=fun_file)
 
         self.datas = functions
         self.ebds = ebds

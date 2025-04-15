@@ -37,8 +37,8 @@ def finetune_eval(net, data_loader):
     avg, gt, cons = [], [], []
     with torch.no_grad():
         for seq1, seq2, _, mask1, mask2, _ in tqdm(data_loader):
-            input_ids1, attention_mask1 = seq1.cuda(), mask1.cuda()
-            input_ids2, attention_mask2 = seq2.cuda(), mask2.cuda()
+            input_ids1, attention_mask1 = seq1.to(device), mask1.to(device)
+            input_ids2, attention_mask2 = seq2.to(device), mask2.to(device)
 
             anchor = net(input_ids=input_ids1, attention_mask=attention_mask1).pooler_output
             pos = net(input_ids=input_ids2, attention_mask=attention_mask2).pooler_output
@@ -97,6 +97,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default='./datautils/extract/', help="Path to the dataset")
     parser.add_argument("--output", type=str, default='./embeddings/Dataset-Muaz.pkl', help="Output path for experiment embeddings")
     parser.add_argument("--tokenizer", type=str, default='./jtrans_tokenizer/')
+    parser.add_argument("--selected_pairs", "-s", type=str, default='../../IDA_scripts/DBs_files_scripts/selected_pairs.csv', help="File to limit the analysis to given functions")
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
@@ -109,6 +110,7 @@ if __name__ == '__main__':
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
+    logger.info(f"Working with device: {device}")
 
     tokenizer = BertTokenizer.from_pretrained(args.tokenizer)
     logger.info("Tokenizer loaded")
@@ -119,7 +121,8 @@ if __name__ == '__main__':
         opt=['O0', 'O1', 'O2', 'O3', 'Os'],
         add_ebd=True,
         convert_jump_addr=True,
-        paired=args.paired
+        paired=args.paired,
+        fun_file=args.selected_pairs
     )
 
     #logger.info("Generating embeddings for dataset...")
@@ -142,13 +145,13 @@ if __name__ == '__main__':
                 idx = ft_valid_dataset.ebds[i].get(opt_level)
                 if idx is not None:
                     ret = tokenizer([pairs[idx]], add_special_tokens=True, max_length=512, padding='max_length', truncation=True, return_tensors='pt')
-                    input_ids, attention_mask = ret['input_ids'].cuda(), ret['attention_mask'].cuda()
+                    input_ids, attention_mask = ret['input_ids'].to(device), ret['attention_mask'].to(device)
                     output = model(input_ids=input_ids, attention_mask=attention_mask)
                     ft_valid_dataset.ebds[i][opt_level] = output.pooler_output.detach().cpu()
     else:
         for i, func_data in tqdm(enumerate(ft_valid_dataset.datas), total=len(ft_valid_dataset.datas)):
             ret = tokenizer([func_data], add_special_tokens=True, max_length=512, padding='max_length', truncation=True, return_tensors='pt')
-            input_ids, attention_mask = ret['input_ids'], ret['attention_mask']
+            input_ids, attention_mask = ret['input_ids'].to(device), ret['attention_mask'].to(device)
             output = model(input_ids=input_ids, attention_mask=attention_mask)
             ft_valid_dataset.ebds[i]["ebd"] = output.pooler_output.detach().cpu()
 
