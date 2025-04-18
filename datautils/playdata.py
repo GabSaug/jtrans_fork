@@ -118,7 +118,7 @@ class DatasetBase(object):
                 pickle_data = self.load_pickle(pkl_path)
                 for func_name, func_data in pickle_data.items():
                     func_addr, asm_list, rawbytes_list, cfg, biai_featrue = func_data
-                    yield proj, func_name, func_addr, asm_list, rawbytes_list, cfg, biai_featrue
+                    yield filename.replace(".pkl",""), func_name, func_addr, asm_list, rawbytes_list, cfg, biai_featrue
 
     def get_unpaird_data(self):
         for proj, pkl_list in self.unpaired.items():

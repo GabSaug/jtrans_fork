@@ -8,8 +8,7 @@ from pathlib import Path
 
 ida_path = "{}/idapro-7.5/idat64".format(Path.home())
 work_dir = os.path.abspath('.')
-dataset_dir = './dataset/'
-strip_path = "./dataset_strip/"
+dataset_dir = '../../../Binaries/Dataset-Muaz/'
 script_path = "./process.py"
 SAVE_ROOT = "./extract"
 

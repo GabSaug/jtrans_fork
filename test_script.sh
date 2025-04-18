@@ -1,4 +1,4 @@
-# @input: selected_pairs file + features (from idb ?)
+#gnn @input: selected_pairs file + features (from idb ?)
 
 # Preprocess data
 # Generate the preprocessed (extract) pickle files
@@ -11,3 +11,5 @@ cd ./datautils
 python3 eval_save.py
 
 # @output: csv file with each line: sim score
+
+python3 ./convert_results_jtrans.py

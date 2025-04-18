@@ -7,6 +7,3 @@ echo "Done, check ./extract"
 
 mkdir -p extract/Dataset-Muaz/
 mv extract/*.pkl extract/Dataset-Muaz/
-
-#Be careful avout the naming of the binaries in the dataset folder:
-#bin-Ox-padding -> For us, Ox should be Op (perturbed) for p" and Ob (base) for p

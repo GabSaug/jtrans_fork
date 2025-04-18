@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 import csv
 from datautils.playdata import DatasetBase as DatasetBase
 import networkx
@@ -89,23 +90,20 @@ def load_simple_data(datapath, filt=None, alldata=True, convert_jump=True, fun_f
     embds_data = []
     total_count = 0
 
-    function_name_set = set()
+    binary_function_set = set()
     if fun_file:
-        with open(fun_file, 'r', newline='') as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                if len(row) != 4:
-                    continue  # Skip malformed lines
-                _, func1, _, func2 = row
-                function_name_set.add(func1.strip())
-                function_name_set.add(func2.strip())
-        print(f"Loaded {len(function_name_set)} unique function entries from CSV.")
+        df = pd.read_csv(fun_file)
+        # Extract function names
+        binary_function_set = set(zip(df["idb_path"], df["func_name"]))
+        print(f"Loaded {len(binary_function_set)} unique function entries from CSV.")
 
 
     for func_data in dataset.get_unpaird_data_iter():
         proj, func_name = func_data[0:2]  # if needed
-        if function_name_set:
-            if func_name not in function_name_set:
+        proj = proj.replace("_extract","")
+        if binary_function_set:
+            proj_path = f"IDBs/Dataset-Muaz/{proj}.i64"
+            if (proj_path, func_name) not in binary_function_set:
                 continue
         func_str = gen_funcstr(func_data[2:], convert_jump)
 

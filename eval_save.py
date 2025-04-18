@@ -97,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument("--dataset_path", type=str, default='./datautils/extract/', help="Path to the dataset")
     parser.add_argument("--output", type=str, default='./embeddings/Dataset-Muaz.pkl', help="Output path for experiment embeddings")
     parser.add_argument("--tokenizer", type=str, default='./jtrans_tokenizer/')
-    parser.add_argument("--selected_pairs", "-s", type=str, default='../../IDA_scripts/DBs_files_scripts/selected_pairs.csv', help="File to limit the analysis to given functions")
+    parser.add_argument("--selected_funcs", "-s", type=str, default='../../DBs/Dataset-Muaz/testing_Dataset-Muaz.csv', help="File to limit the analysis to given functions")
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
         add_ebd=True,
         convert_jump_addr=True,
         paired=args.paired,
-        fun_file=args.selected_pairs
+        fun_file=args.selected_funcs
     )
 
     #logger.info("Generating embeddings for dataset...")
