@@ -14,4 +14,4 @@ python3 eval_save.py
 
 python3 ./convert_results_jtrans.py
 
-cp ./pairs_results_Dataset-Muaz_jtr.csv ../../../../Results/csv/
+cp pairs_results_Dataset-Muaz_jtr.csv ../../Results/csv/
