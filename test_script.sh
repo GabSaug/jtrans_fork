@@ -5,6 +5,7 @@
 # -> ./datautils/extract
 cd ./datautils
 ./setup_preprocess.sh
+cd -
 
 # Default arguments should be correctly updated
 #
