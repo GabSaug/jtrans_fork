@@ -1,5 +1,7 @@
 #gnn @input: selected_pairs file + features (from idb ?)
 
+cp ../../DBs/Dataset-Muaz/testing_Dataset-Muaz.csv ./testing_Dataset-Muaz.csv
+cp ../../DBs/Dataset-Muaz/pairs/pairs_testing_Dataset-Muaz.csv ./pairs_testing_Dataset-Muaz.csv
 # Preprocess data
 # Generate the preprocessed (extract) pickle files
 # -> ./datautils/extract

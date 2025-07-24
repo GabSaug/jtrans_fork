@@ -119,7 +119,7 @@ def load_simple_data(datapath, filt=None, alldata=True, convert_jump=True, fun_f
     return functions, embds_data
 
 def load_paired_data( datapath, filt=None, alldata=True, convert_jump=True,
-                     opt=None, add_ebd=False, csv_file=None):
+                     opt=None, add_ebd=False):
     dataset = DatasetBase(datapath, filt, alldata, opt=opt)
     functions = []
     func_emb_data = []
@@ -229,6 +229,7 @@ class FunctionDataset_CL(torch.utils.data.Dataset):
         return len(self.datas)
 
 class FunctionDataset_CL_Load(torch.utils.data.Dataset): #binary version dataset
+
     def __init__(self,tokenizer,path='../BinaryCorp/extract',filt=None,alldata=True,convert_jump_addr=True,opt=None,add_ebd=True, load=None):  #random visit
         if load:
             start = time.time()
@@ -238,7 +239,9 @@ class FunctionDataset_CL_Load(torch.utils.data.Dataset): #binary version dataset
             self.opt=opt
             self.convert_jump_addr=True
         else:
+            print("Loading paired data")
             functions,ebds=load_paired_data(datapath=path,filt=filt,alldata=alldata,convert_jump=convert_jump_addr,opt=opt,add_ebd=add_ebd)
+            print("Done loading paired data")
             self.datas=[]
             for func_list in functions:
                 tmp = []

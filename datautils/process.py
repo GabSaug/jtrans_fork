@@ -79,12 +79,28 @@ class BinaryData(Binarybase):
             if idc.get_segm_name(func) in ['.plt', 'extern', '.init', '.fini']:
                 continue
             print("[+] %s" % idc.get_func_name(func))
+            name = idc.get_func_name(func)
             asm_list = self.get_asm(func)
             rawbytes_list = self.get_rawbytes(func)
             cfg = self.get_cfg(func)
             bai_feature = self.get_binai_feature(func)
-            yield (self.addr2name[func], func, asm_list, rawbytes_list, cfg, bai_feature)
+            if func not in self.addr2name:
+                yield (name, func, asm_list, rawbytes_list, cfg, bai_feature)
+            else:
+                yield (self.addr2name[func], func, asm_list, rawbytes_list, cfg, bai_feature)
 
+    def print_func_info(self,
+                        func_name: str,
+                        func_ea: int,
+                        asm_list: list[str],
+                        rawbytes_list: bytes,
+                        cfg,  # networkx.DiGraph
+                        bai_feature: list):
+        """Pretty‑print a one‑line summary of everything we’ve extracted for a function."""
+        print(f"[+] {func_name} @ {hex(func_ea)}:")
+        print(f"    instrs: {len(asm_list):5d}    bytes: {len(rawbytes_list):6d}    "
+              f"BBs: {cfg.number_of_nodes():3d}    edges: {cfg.number_of_edges():3d}    "
+              f"BinAI feats: {len(bai_feature)}")
 
 if __name__ == "__main__":
     import os

@@ -82,7 +82,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pairs_csv", default="../../DBs/Dataset-Muaz/pairs/pairs_testing_Dataset-Muaz.csv", help="CSV file with function pairs")
+    parser.add_argument("--pairs_csv", default="./pairs_testing_Dataset-Muaz.csv", help="CSV file with function pairs")
     parser.add_argument("--embeddings", default="./embeddings/Dataset-Muaz.pkl", help="Path to .pt file containing embeddings")
     parser.add_argument("--output", default="./pairs_results_Dataset-Muaz_jtr.csv", help="Path to save output CSV with similarity scores")
     args = parser.parse_args()

@@ -19,7 +19,7 @@ import sys
 #import time
 #import data
 import pickle
-WANDB = True
+WANDB = False
 
 
 def get_logger(name):
@@ -50,9 +50,10 @@ def train_dp(model, args, train_set, valid_set, logger):
         wandb.config.update(args)
 
     logger.info("Initializing Model...")
-    device = torch.device("cuda")
+    device = torch.device("cpu")
     model.to(device)
     logger.info("Finished Initialization...")
+    print("Train dataset size:", len(train_set))
     train_dataloader = DataLoader(train_set, batch_size=args.batch_size, num_workers=48, shuffle=True, prefetch_factor=4)
     valid_dataloader = DataLoader(valid_set, batch_size=args.eval_batch_size, num_workers=48, shuffle=True, prefetch_factor=4)
 
@@ -211,8 +212,8 @@ if __name__ == '__main__':
     parser.add_argument("--eval_every", type=int, default=1, help="evaluate the model every x epochs")
     parser.add_argument("--eval_every_step", type=int, default=1000, help="evaluate the model every x epochs")
     parser.add_argument("--save_every", type=int, default=1, help="save the model every x epochs")
-    parser.add_argument("--train_path", type=str, default='./BinaryCorp/small_train', help='the path of training data')
-    parser.add_argument("--eval_path", type=str, default='./BinaryCorp/small_test', help='the path of evaluation data')
+    parser.add_argument("--train_path", type=str, default='./finetune_dataset/small_train', help='the path of training data')
+    parser.add_argument("--eval_path", type=str, default='./finetune_dataset/small_test', help='the path of evaluation data')
     parser.add_argument("--load_path", type=str, default='./experiments/BinaryCorp-3M/', help='load path')
 
     args = parser.parse_args()
@@ -243,8 +244,8 @@ if __name__ == '__main__':
     load_train, load_test = False, False
     # load_train = f"{args.load_path}/jTrans-{args.train_path.split('/')[-1]}.pkl"
     # load_test = f"{args.load_path}/jTrans-{args.eval_path.split('/')[-1]}.pkl"
-    ft_train_dataset = FunctionDataset_CL_Load(tokenizer, args.train_path, convert_jump_addr=True, load=load_train, opt=['O0', 'O1', 'O2', 'O3', 'Os'])
-    ft_valid_dataset = FunctionDataset_CL_Load(tokenizer, args.eval_path, convert_jump_addr=True, load=load_test, opt=['O0', 'O1', 'O2', 'O3', 'Os'])
+    ft_train_dataset = FunctionDataset_CL_Load(tokenizer, args.train_path, convert_jump_addr=True, load=load_train, opt=['O0', 'O1', 'O2', 'O3', 'Os', "Ofast", "Op"])
+    ft_valid_dataset = FunctionDataset_CL_Load(tokenizer, args.eval_path, convert_jump_addr=True, load=load_test, opt=['O0', 'O1', 'O2', 'O3', 'Os', 'Ofast', 'Op'])
     if not load_train:
         pickle.dump(ft_train_dataset.datas, open(f"{args.load_path}/jTrans-{args.train_path.split('/')[-1]}.pkl", 'wb'))
         pickle.dump(ft_valid_dataset.datas, open(f"{args.load_path}/jTrans-{args.eval_path.split('/')[-1]}.pkl", 'wb'))

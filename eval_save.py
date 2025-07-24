@@ -93,11 +93,11 @@ class BinBertModel(BertModel):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="jTrans Evaluation + Save EBDs")
-    parser.add_argument("--model_path", type=str, default='./models/jTrans-finetune', help="Path to the model")
+    parser.add_argument("--model_path", type=str, default='./models/jTrans-pretrain', help="Path to the model")
     parser.add_argument("--dataset_path", type=str, default='./datautils/extract/', help="Path to the dataset")
     parser.add_argument("--output", type=str, default='./embeddings/Dataset-Muaz.pkl', help="Output path for experiment embeddings")
     parser.add_argument("--tokenizer", type=str, default='./jtrans_tokenizer/')
-    parser.add_argument("--selected_funcs", "-s", type=str, default='../../DBs/Dataset-Muaz/testing_Dataset-Muaz.csv', help="File to limit the analysis to given functions")
+    parser.add_argument("--selected_funcs", "-s", type=str, default='./testing_Dataset-Muaz.csv', help="File to limit the analysis to given functions")
     parser.add_argument("--paired", action="store_true")
     args = parser.parse_args()
 
